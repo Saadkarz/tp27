@@ -1,7 +1,6 @@
 # TP27 - Test de Concurrence, Verrous DB & Résilience
 
 **Auteur** : Karzouz Saad  
-**Date** : 29/12/2024
 
 ---
 
