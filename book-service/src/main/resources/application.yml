@@ -1,0 +1,137 @@
+spring:
+  application:
+    name: book-service
+
+server:
+  port: ${SERVER_PORT:8080}
+
+# Instance name (for logging)
+instance:
+  name: ${INSTANCE_NAME:book-service-local}
+
+# Pricing service URL
+pricing:
+  service:
+    url: ${PRICING_SERVICE_URL:http://localhost:8082}
+
+# Database Configuration
+spring.datasource:
+  url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:booksdb}
+  username: ${SPRING_DATASOURCE_USERNAME:sa}
+  password: ${SPRING_DATASOURCE_PASSWORD:}
+  driver-class-name: ${SPRING_DATASOURCE_DRIVER:org.h2.Driver}
+
+spring.jpa:
+  hibernate:
+    ddl-auto: update
+  show-sql: false
+  properties:
+    hibernate:
+      dialect: ${HIBERNATE_DIALECT:org.hibernate.dialect.H2Dialect}
+      format_sql: true
+
+# H2 Console (dev only)
+spring.h2.console:
+  enabled: false
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  info:
+    env:
+      enabled: true
+
+# Application Info
+info:
+  app:
+    name: Book Service
+    description: Microservice de gestion des livres avec verrou DB - TP27
+    version: 1.0.0
+    author: Karzouz Saad
+
+# Resilience4j Configuration
+resilience4j:
+  # Retry Configuration
+  retry:
+    instances:
+      pricingService:
+        maxAttempts: 3
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+
+  # Circuit Breaker Configuration
+  circuitbreaker:
+    instances:
+      pricingService:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - java.io.IOException
+          - java.util.concurrent.TimeoutException
+          - org.springframework.web.client.ResourceAccessException
+          - org.springframework.web.client.HttpServerErrorException
+          - org.springframework.web.client.HttpClientErrorException
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.example.bookservice: DEBUG
+    io.github.resilience4j: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# Profile DEV (H2)
+spring:
+  config:
+    activate:
+      on-profile: dev
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+logging:
+  level:
+    root: DEBUG
+    org.hibernate.SQL: DEBUG
+
+---
+# Profile PROD (MySQL)
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+
+logging:
+  level:
+    root: INFO
+    com.example.bookservice: INFO
+    io.github.resilience4j: INFO

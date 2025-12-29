@@ -1,0 +1,8 @@
+﻿resilience4j.circuitbreaker.buffered.calls
+resilience4j.circuitbreaker.calls
+resilience4j.circuitbreaker.failure.rate
+resilience4j.circuitbreaker.not.permitted.calls
+resilience4j.circuitbreaker.slow.call.rate
+resilience4j.circuitbreaker.slow.calls
+resilience4j.circuitbreaker.state
+resilience4j.retry.calls

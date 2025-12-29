@@ -1,0 +1,190 @@
+# ===========================================
+# Docker Compose - TP27
+# Test de Concurrence, Verrous DB & Résilience
+# ===========================================
+#
+# Architecture:
+# - mysql: Base de données MySQL 8
+# - pricing-service: Service de pricing (port 8082)
+# - book-service-1: Instance 1 (port 8081)
+# - book-service-2: Instance 2 (port 8083)
+# - book-service-3: Instance 3 (port 8084)
+#
+# Utilisation:
+# - Lancement: docker compose up -d --build
+# - Logs: docker compose logs -f
+# - Stop pricing: docker compose stop pricing-service
+#
+# ===========================================
+
+version: '3.8'
+
+services:
+  # ===========================================
+  # MySQL Database
+  # ===========================================
+  mysql:
+    image: mysql:8.0
+    container_name: tp27-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: books
+      MYSQL_USER: booksuser
+      MYSQL_PASSWORD: bookspass
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: [ "CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpass" ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - tp27-network
+
+  # ===========================================
+  # Pricing Service (port 8082)
+  # ===========================================
+  pricing-service:
+    build:
+      context: ./pricing-service
+      dockerfile: Dockerfile
+    container_name: tp27-pricing-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8082
+      - JAVA_OPTS=-Xmx256m -Xms128m
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - tp27-network
+
+  # ===========================================
+  # Book Service Instance 1 (port 8081)
+  # ===========================================
+  book-service-1:
+    build:
+      context: ./book-service
+      dockerfile: Dockerfile
+    container_name: tp27-book-service-1
+    restart: unless-stopped
+    ports:
+      - "8081:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8080
+      - INSTANCE_NAME=book-service-1
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/books?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=booksuser
+      - SPRING_DATASOURCE_PASSWORD=bookspass
+      - PRICING_SERVICE_URL=http://pricing-service:8082
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    depends_on:
+      mysql:
+        condition: service_healthy
+      pricing-service:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - tp27-network
+
+  # ===========================================
+  # Book Service Instance 2 (port 8083)
+  # ===========================================
+  book-service-2:
+    build:
+      context: ./book-service
+      dockerfile: Dockerfile
+    container_name: tp27-book-service-2
+    restart: unless-stopped
+    ports:
+      - "8083:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8080
+      - INSTANCE_NAME=book-service-2
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/books?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=booksuser
+      - SPRING_DATASOURCE_PASSWORD=bookspass
+      - PRICING_SERVICE_URL=http://pricing-service:8082
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    depends_on:
+      mysql:
+        condition: service_healthy
+      pricing-service:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - tp27-network
+
+  # ===========================================
+  # Book Service Instance 3 (port 8084)
+  # ===========================================
+  book-service-3:
+    build:
+      context: ./book-service
+      dockerfile: Dockerfile
+    container_name: tp27-book-service-3
+    restart: unless-stopped
+    ports:
+      - "8084:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      - SERVER_PORT=8080
+      - INSTANCE_NAME=book-service-3
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql:3306/books?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      - SPRING_DATASOURCE_USERNAME=booksuser
+      - SPRING_DATASOURCE_PASSWORD=bookspass
+      - PRICING_SERVICE_URL=http://pricing-service:8082
+      - JAVA_OPTS=-Xmx512m -Xms256m
+    depends_on:
+      mysql:
+        condition: service_healthy
+      pricing-service:
+        condition: service_healthy
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+    networks:
+      - tp27-network
+
+# ===========================================
+# Networks
+# ===========================================
+networks:
+  tp27-network:
+    driver: bridge
+    name: tp27-network
+
+# ===========================================
+# Volumes
+# ===========================================
+volumes:
+  mysql-data:
+    driver: local
+    name: tp27-mysql-data

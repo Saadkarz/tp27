@@ -1,0 +1,19 @@
+﻿{
+    "value":  [
+                  {
+                      "id":  1,
+                      "title":  "TP-Concurrency",
+                      "author":  "Demo",
+                      "stock":  0,
+                      "version":  23
+                  },
+                  {
+                      "id":  2,
+                      "title":  "TP-Fallback",
+                      "author":  "Demo",
+                      "stock":  0,
+                      "version":  10
+                  }
+              ],
+    "Count":  2
+}

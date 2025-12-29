@@ -1,0 +1,60 @@
+spring:
+  application:
+    name: pricing-service
+
+server:
+  port: ${SERVER_PORT:8082}
+
+# Actuator Configuration - Observabilité
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,env,prometheus
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+  info:
+    env:
+      enabled: true
+
+# Application Info
+info:
+  app:
+    name: Pricing Service
+    description: Microservice de gestion des prix - TP27
+    version: 1.0.0
+    author: Karzouz Saad
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.example.pricing: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# Profile DEV
+spring:
+  config:
+    activate:
+      on-profile: dev
+
+logging:
+  level:
+    root: DEBUG
+
+---
+# Profile PROD (Docker)
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+logging:
+  level:
+    root: INFO
+    com.example.pricing: INFO
